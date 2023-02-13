@@ -41,3 +41,23 @@
 
 
 
+#### OTA进度条状态监测
+
+检测打印输出顺序：
+
+```bash
+check_MQTT
+check_BL
+check_NewVersion
+check_UpdateIAP
+check_EnterAPP
+check_FileStream
+check_EnterCRC
+check_EOF
+check_AwaitNAK
+check_ReceivedACK
+check_InfoBlock
+check_FlashFinishs
+check_UpdateSuccess
+```
+
