@@ -1,0 +1,76 @@
+# 工作开发纪要
+
+**前言：本文仅仅简单说下使用Zephyr开发过程中遇到的一些问题，以及当时的解决办法**
+
+
+
+# 一、设备树的使用
+
+<img src="./zephyr_doc.assets/image-20230703160522490.png" alt="image-20230703160522490" style="zoom:200%;" />
+
+一般来说一个基于ZephyrRTOS的工程文件如上图，其中applications文件夹是工程具体的逻辑实现过程，boards是所使用的的MCU的设备树设置，也是工程开发的第一步，dts用于存放一些板上其他芯片的相关信息，一般而言可以不配置
+
+
+
+board文件夹结构一般如下图所示
+
+<img src="./zephyr_doc.assets/image-20230703161017101.png" alt="image-20230703161017101" style="zoom:200%;" />
+
+首先要说的是，*尤其要注意board文件夹内所有文件的命名需要统一*，使用west build -b your_board_cfg时会很查询所有关于your_board_cfg有关的文件名
+
+
+
+接下来简单说明每个文件的功能
+
+1) `Kconfig.board`和`Kconfig.defconfig`与`plank_defconfig`
+
+   主要包含Kconfig格式的软件配置，这为软件功能和外围驱动程序提供默认设置与标签
+
+2) `plank.dts`
+
+   类似Linux上的设备树，这份文件声明了Soc、MCU、连接器和任何其他的硬件组件，比如LED、按钮、传感器或任何通信外设等
+
+3) `board.cmake`
+
+   主要提供固件烧写和debug的相关支持，一般默认jlink
+
+4) `plank.dtsi`
+
+   MCU引脚描述，一般直接从moudle文件夹内复制这个表，可以做修改，但从移植性讲还是尽量不要改动这个文件
+
+5) `plank.yaml`
+
+   运行时进行快速配置的各种元数据
+
+工程具体配置时，还请参考zephyr/samples以及zephyr/boards里的各种已有的供以参考的工程文件
+
+## 配置设备树过程中遇到的问题Q&A
+
+一、编译过程警告`“Excluding target from build.”`
+
+![飞书20230705-111950](./zephyr_doc.assets/飞书20230705-111950.jpg)
+
+这是因为在`Kconfig.defconfig`和`plank.yaml`里已经配置的外设（例如timers、SPI、usart等外设）元数据，在`plank.dtsi`没有具体相应的具体配置，也即对应不上。
+
+在`plank.dtsi`修改添加相应配置或者删除上述的元数据配置即可。
+
+二、编译完成后，使用jlink下载进板子，没有任何相应，中断也打不出
+
+这是因为`plank.dtsi`内的时钟配置有问题，总是是晶振没有正常工作。
+
+三、设备树变更后，编译无法通过，找不到主要原因
+
+![image-20230720145845764](./zephyr_doc.assets/image-20230720145845764.png)
+
+如上图，原因大概率是因为有些内容被私自或其他原因被改掉了，需要严格按照Zephyr官网的介绍填写相关关键字
+
+四、zephyr设备树上的I2C跑1M波形不正确
+
+![image-20230801132606550](./zephyr_doc.assets/image-20230801132606550.png)
+
+暂不清楚原因，使用多个不同厂家的板子（STM32、NXP等）试图跑1MHz的I2C，都会出现如上波形，但是400KHz是正常的
+
+## 一些其他的问题&吐槽
+
+zephyrRTOS最很多常见设备通信方式都做了单独调用的api，用以简化设备驱动开发，但是有些非常屎的片子的支持度不够高，比如说国产之光GD32....，用zephyr开发GD32或许不是一种特别好的选择，有的时候都不知道是zephyr的问题还是gd32的问题，很迷惑且占用非常多的时间....
+
